@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="nb"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Resultatløp – miljøstand 23. oktober</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#f6f5f2;--card:#fff;--tx:#1d1f23;--mu:#6b7078;--ln:#d9d7d0;--wk:#efede8;--red:#c0392b}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#17181b;--card:#23252a;--tx:#ececec;--mu:#9a9ea6;--ln:#3a3d44;--wk:#1e2024}}
+:root[data-theme="dark"]{--bg:#17181b;--card:#23252a;--tx:#ececec;--mu:#9a9ea6;--ln:#3a3d44;--wk:#1e2024}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--tx);font:13px/1.35 system-ui,-apple-system,"Segoe UI",sans-serif}
+h1{font-size:17px;margin:0}.top{padding:12px 14px 4px}.mu{color:var(--mu)}
+.bar{display:flex;gap:6px;flex-wrap:wrap;padding:8px 14px;align-items:center}
+.chip{background:var(--card);border:2px solid;border-radius:16px;padding:3px 10px;cursor:pointer}.chip.off{opacity:.4}
+button,select,input,textarea{font:inherit;color:var(--tx);background:var(--card);border:1px solid var(--ln);border-radius:6px;padding:4px 8px}
+button{cursor:pointer}
+.sc{overflow:auto;border-top:1px solid var(--ln);border-bottom:1px solid var(--ln);max-height:74vh}
+.node{position:absolute;text-align:center;cursor:pointer}
+.dot{width:26px;height:26px;border-radius:50%;border:3px solid;background:var(--card);margin:0 auto;box-sizing:border-box;display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff;font-weight:700}
+.node.big .dot{width:34px;height:34px}.node.sel .dot{box-shadow:0 0 0 3px var(--tx)}
+.lb{font-size:10px;line-height:1.15;margin-top:2px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.dt{font-size:10px;color:var(--mu)}.late .dt,.late .lb{color:var(--red);font-weight:600}
+.panel{position:fixed;right:10px;bottom:calc(10px + env(safe-area-inset-bottom,0px));width:min(320px,calc(100vw - 20px));max-height:70vh;overflow:auto;background:var(--card);border:1px solid var(--ln);border-radius:10px;padding:10px;box-shadow:0 4px 18px #0004;z-index:5}
+.panel label{display:block;margin-top:6px;color:var(--mu);font-size:11px}.panel input,.panel select{width:100%;box-sizing:border-box}
+.row{display:flex;gap:6px;align-items:center;margin-top:4px}.x{padding:0 6px}
+.leg{padding:6px 14px 14px;color:var(--mu);font-size:12px}
+</style></head><body>
+<div id="root"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<script type="text/babel">
+const {useState,useMemo,useEffect}=React;
+const L={A:{n:'A Interessent',c:'#2a7fba'},B:{n:'B Promotering',c:'#c77b1a'},C:{n:'C Stand',c:'#3a9a5c'},D:{n:'D Gjennomføring (Gina)',c:'#8a5cc2'},E:{n:'E Emnet (formelt)',c:'#7a8088'}};
+const LK=Object.keys(L);
+const N=(id,l,d,t,s=0,h=0)=>({id,l,d:d.length<6?'2026-'+d:d,t,s,h});
+const NODES=[
+N('a1','A','09-30','Sikret samarbeid med BIR',2),N('a2','A','09-30','Sikret besøk av miljøbuss',2),N('a3','A','09-30','Tillatelse til stand av HVL',2),
+N('a5','A','09-30','Purret på svar (HVL)',2),N('a6','A','10-02','Møte på kontor (HVL)'),N('a7','A','10-07','Avklart telefonmøte med Tina Skuldal'),
+N('a8','A','10-09','Svart Tina om buss-tillatelse'),N('a4','A','10-09','Tillatelse til miljøbuss av HVL'),N('a9','A','10-09','Telefonmøte med Tina (BIR-samarbeid)'),
+N('a10','A','10-09','Backup: egensøppeltømming på HVL'),N('a11','A','10-16','Orientert kontaktperson i BIR om standen'),
+N('b1','B','10-05','Promoteringsplan (5 ledd)'),N('b2','B','10-05','Ferdig egen plakat'),N('b3','B','10-05','Spurt BIR/HVL om tillatelse plakat'),
+N('b4','B','10-05','Ferdig doavis'),N('b5','B','10-05','Sendt tillatelse servicetorget (doavis)'),N('b6','B','10-06','Avklart fordeling med andre gruppe'),
+N('b7','B','10-06','SoMe-promo: avklart hva på HVL/BTS/SoMe'),N('b8','B','10-07','Ferdig fellesplakat'),N('b9','B','10-07','Tillatelse fellesplakat mottatt'),
+N('b10','B','10-07','Tillatelse doavis + egen plakat mottatt'),N('b11','B','10-08','Printet egen plakat (Gina)'),N('b12','B','10-09','Hengt opp egne plakater'),
+N('b13','B','10-12','Hengt opp doavis'),N('b14','B','10-13','Laget Facebook-arrangement'),
+N('c1','C','10-02','Infodeling formidlet til BIR internt'),N('c2','C','10-09','Plan for stand + besluttet aktiviteter'),
+N('c3','C','10-12','Besluttet informasjonsformidling'),N('c4','C','10-14','Besluttet dekor av stand'),
+N('c5','C','10-16','Plansjer, plakater, premier, QR-kode'),N('c6','C','10-21','Skaffet materiale til aktiviteter'),
+N('d1','D','10-16','Avklart arbeidsfordeling på dagen'),N('d2','D','10-21','Avklart hvem tar med hva'),N('d3','D','10-23','Gjennomført stand',0,1),
+N('e1','E','10-02','Avklart deler statusrapport + startet'),N('e2','E','10-11','Levert statusrapport',0,1),N('e3','E','10-26','Avklart deler sluttrapport + startet'),
+N('e4','E','11-01','Levert sluttrapport',0,1),N('e5','E','11-20','Presentasjon til eksamen',0,1),N('e6','E','11-30','Eksamen 30.11–4.12',0,1)];
+const EDGES=[['a3','a4'],['a5','a6'],['a6','a8'],['a8','a4'],['a1','a9'],['a7','a9'],['a4','a10'],['a4','c2'],['a9','c2'],['a10','c2'],['c2','a11'],
+['b1','b2'],['b1','b4'],['b1','b8'],['b1','b14'],['b1','b7'],['b2','b3'],['b3','b10'],['b4','b5'],['b5','b10'],['b10','b11'],['b11','b12'],['b10','b13'],['b6','b8'],['b8','b9'],['c2','b14'],
+['c1','c2'],['c2','c3'],['c3','c4'],['c4','c5'],['c5','c6'],
+['c5','d1'],['d1','d2'],['d2','d3'],['c6','d2'],['c6','d3'],['a4','d3'],['a11','d3'],['b12','d3'],['b13','d3'],['b14','d3'],
+['e1','e2'],['d3','e3'],['e3','e4'],['e4','e5'],['e5','e6']].map(([f,t])=>({f,t}));
+const KEY='resultatlop-v2',START='2026-09-30',DW=48,NW=96,NH=62,LW=96,HH=30,COLS=36;
+const dd=(a,b)=>Math.round((Date.parse(b)-Date.parse(a))/864e5);
+const fm=d=>d.slice(8)+'.'+d.slice(5,7);
+const TODAY=new Date().toISOString().slice(0,10);
+function load(){try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&s.nodes&&s.edges)return s}catch(e){}return{nodes:NODES,edges:EDGES}}
+function App(){
+const init=useMemo(load,[]);
+const [nodes,setNodes]=useState(init.nodes),[edges,setEdges]=useState(init.edges);
+const [sel,setSel]=useState(null),[on,setOn]=useState({A:1,B:1,C:1,D:1,E:1}),[io,setIo]=useState(null);
+useEffect(()=>{try{localStorage.setItem(KEY,JSON.stringify({nodes,edges}))}catch(e){}},[nodes,edges]);
+const byId=useMemo(()=>Object.fromEntries(nodes.map(n=>[n.id,n])),[nodes]);
+const late=n=>n.s<2&&n.d<TODAY;
+const lay=useMemo(()=>{
+ const pos={};let y=HH;const lanes=[];
+ LK.filter(k=>on[k]).forEach(k=>{
+  const items=nodes.filter(n=>n.l===k).map(n=>({n,x:LW+Math.min(dd(START,n.d),COLS-1)*DW+DW/2-NW/2})).sort((a,b)=>a.x-b.x||a.n.d.localeCompare(b.n.d));
+  const ends=[];
+  items.forEach(it=>{let r=ends.findIndex(e=>e+2<=it.x);if(r<0){r=ends.length;ends.push(0)}ends[r]=it.x+NW;pos[it.n.id]={x:it.x,y:y+6+r*NH}});
+  const h=Math.max(1,ends.length)*NH+8;lanes.push({k,y,h});y+=h});
+ return{pos,lanes,H:y}},[nodes,on]);
+const upd=(id,p)=>setNodes(ns=>ns.map(n=>n.id===id?{...n,...p}:n));
+const addEdge=(f,t)=>{if(f&&t&&f!==t&&!edges.some(e=>e.f===f&&e.t===t))setEdges([...edges,{f,t}])};
+const rmEdge=(f,t)=>setEdges(edges.filter(e=>!(e.f===f&&e.t===t)));
+const add=()=>{const id='n'+Date.now();setNodes([...nodes,{id,l:'A',d:TODAY<'2026-10-01'?'2026-10-01':TODAY,t:'Ny milepæl',s:0,h:0}]);setSel(id)};
+const del=id=>{setNodes(nodes.filter(n=>n.id!==id));setEdges(edges.filter(e=>e.f!==id&&e.t!==id));setSel(null)};
+const R=15;
+const path=e=>{const a=lay.pos[e.f],b=lay.pos[e.t];if(!a||!b)return null;
+ const x1=a.x+NW/2,y1=a.y+13,x2=b.x+NW/2,y2=b.y+13,ang=Math.atan2(y2-y1,x2-x1),sx=x1+R*Math.cos(ang),sy=y1+R*Math.sin(ang),ex=x2-(R+3)*Math.cos(ang),ey=y2-(R+3)*Math.sin(ang);
+ if(Math.abs(x2-x1)<DW*.6){const m=(ey-sy)/2;return`M${sx},${sy}C${sx},${sy+m} ${ex},${ey-m} ${ex},${ey}`}
+ const m=(ex-sx)/2;return`M${sx},${sy}C${sx+m},${sy} ${ex-m},${ey} ${ex},${ey}`};
+const sn=sel&&byId[sel];
+const W=LW+COLS*DW;
+const days=[...Array(COLS)].map((_,i)=>{const d=new Date(Date.UTC(2026,8,30+i));return{i,d:d.getUTCDate(),m:d.getUTCMonth()+1,wk:[0,6].includes(d.getUTCDay())}});
+const mark=[[TODAY,'I dag','#d33'],['2026-10-23','Arrangement','#8a5cc2'],['2026-11-01','Sluttrapport','#7a8088']];
+const hi=e=>sel&&(e.f===sel||e.t===sel);
+const ve=edges.filter(e=>byId[e.f]&&byId[e.t]);
+return <div>
+<div className="top"><h1>Resultatløp – miljøstand 23. oktober</h1><div className="mu">Hver sirkel er en milepæl. Pilene viser hva som må være ferdig først. Klikk en sirkel for å se koblingene og redigere.</div></div>
+<div className="bar">{LK.map(k=>{const a=nodes.filter(n=>n.l===k),l=a.filter(late).length;return <span key={k} className={'chip'+(on[k]?'':' off')} style={{borderColor:L[k].c}} onClick={()=>setOn({...on,[k]:on[k]?0:1})}>{L[k].n}: {a.filter(n=>n.s===2).length}/{a.length}{l>0&&<b style={{color:'var(--red)'}}> · {l} forsinket</b>}</span>})}</div>
+<div className="bar"><button onClick={add}>+ Ny milepæl</button><button onClick={()=>setIo(JSON.stringify({nodes,edges},null,1))}>Eksport / import</button>
+<button onClick={()=>{if(confirm('Tilbakestille til opprinnelig plan?')){setNodes(NODES);setEdges(EDGES);setSel(null)}}}>Tilbakestill</button></div>
+<div className="sc"><div style={{position:'relative',width:W,height:lay.H+8}}>
+{days.map(x=>x.wk&&<div key={x.i} style={{position:'absolute',left:LW+x.i*DW,top:HH,width:DW,height:lay.H-HH,background:'var(--wk)'}}/>)}
+{days.map(x=><div key={x.i} className="mu" style={{position:'absolute',left:LW+x.i*DW,top:6,width:DW,textAlign:'center',fontSize:10}}>{x.d===1||x.i===0?<b>{x.d}.{x.m}</b>:x.d}</div>)}
+<div className="mu" style={{position:'absolute',left:LW+(COLS-1)*DW,top:6,width:DW,textAlign:'center',fontSize:10}}><b>Senere</b></div>
+{lay.lanes.map(l=><div key={l.k} style={{position:'absolute',left:0,top:l.y,width:W,height:l.h,borderTop:'1px solid var(--ln)'}}>
+<div style={{position:'sticky',left:0,width:LW-6,padding:'6px',fontWeight:700,color:L[l.k].c,background:'var(--bg)',height:l.h-1,boxSizing:'border-box',zIndex:2}}>{L[l.k].n}</div></div>)}
+{mark.map(([d,t,c])=>{const i=dd(START,d);if(i<0||i>=COLS-1)return null;return <div key={t} style={{position:'absolute',left:LW+i*DW+DW/2,top:HH,height:lay.H-HH,borderLeft:'2px dashed '+c,opacity:.5,pointerEvents:'none'}}><span style={{position:'absolute',top:-11,left:3,fontSize:9,color:c,whiteSpace:'nowrap'}}>{t}</span></div>})}
+<svg width={W} height={lay.H} style={{position:'absolute',left:0,top:0,pointerEvents:'none'}}>
+<defs>{[['n','#9a9ea6'],['h','#1d6fd6']].map(([k,c])=><marker key={k} id={'ar'+k} viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0L8,4L0,8z" fill={c}/></marker>)}</defs>
+{ve.map((e,i)=>{const p=path(e);if(!p)return null;const h=hi(e);return <path key={i} d={p} fill="none" stroke={h?'#1d6fd6':'#9a9ea6'} strokeWidth={h?2.4:1.2} opacity={sel&&!h?.2:.85} markerEnd={`url(#ar${h?'h':'n'})`}/>})}</svg>
+{nodes.map(n=>{const p=lay.pos[n.id];if(!p)return null;const c=late(n)?'#c0392b':L[n.l].c;
+return <div key={n.id} className={'node'+(n.h?' big':'')+(sel===n.id?' sel':'')+(late(n)?' late':'')} title={n.t+' – '+fm(n.d)} style={{left:p.x,top:p.y,width:NW,opacity:sel&&sel!==n.id&&!edges.some(e=>(e.f===sel&&e.t===n.id)||(e.t===sel&&e.f===n.id))?.45:1}} onClick={()=>setSel(n.id)}>
+<div className="dot" style={{borderColor:c,background:n.s===2?c:n.s===1?`linear-gradient(90deg,${c} 50%,transparent 50%)`:undefined}}>{n.s===2?'✓':''}</div>
+<div className="lb">{n.t}</div><div className="dt">{fm(n.d)}</div></div>})}
+</div></div>
+<div className="leg">Fylt sirkel = ferdig, halvfylt = pågår, tom = ikke startet, rød = forsinket. Store sirkler er harde frister.</div>
+{sn&&<div className="panel"><div className="row"><b style={{flex:1}}>Rediger milepæl</b><button className="x" onClick={()=>setSel(null)}>✕</button></div>
+<label>Tittel</label><input value={sn.t} onChange={e=>upd(sn.id,{t:e.target.value})}/>
+<label>Frist</label><input type="date" value={sn.d} onChange={e=>e.target.value&&upd(sn.id,{d:e.target.value})}/>
+<label>Ansvarsområde</label><select value={sn.l} onChange={e=>upd(sn.id,{l:e.target.value})}>{LK.map(k=><option key={k} value={k}>{L[k].n}</option>)}</select>
+<label>Status</label><select value={sn.s} onChange={e=>upd(sn.id,{s:+e.target.value})}><option value={0}>Ikke startet</option><option value={1}>Pågår</option><option value={2}>Ferdig</option></select>
+<label>Må være ferdig før denne</label>
+{edges.filter(e=>e.t===sn.id&&byId[e.f]).map(e=><div className="row" key={e.f}><span style={{flex:1}}>{byId[e.f].t} ({fm(byId[e.f].d)})</span><button className="x" onClick={()=>rmEdge(e.f,e.t)}>✕</button></div>)}
+<select value="" onChange={e=>addEdge(e.target.value,sn.id)}><option value="">+ Legg til …</option>{nodes.filter(n=>n.id!==sn.id).sort((a,b)=>a.l.localeCompare(b.l)||a.d.localeCompare(b.d)).map(n=><option key={n.id} value={n.id}>{n.l} · {fm(n.d)} · {n.t}</option>)}</select>
+<div className="row"><button onClick={()=>del(sn.id)} style={{color:'var(--red)'}}>Slett</button></div></div>}
+{io!==null&&<div className="panel" style={{width:'min(460px,calc(100vw - 20px))'}}><div className="row"><b style={{flex:1}}>Eksport / import (JSON)</b><button className="x" onClick={()=>setIo(null)}>✕</button></div>
+<textarea style={{width:'100%',height:220,boxSizing:'border-box',marginTop:6}} value={io} onChange={e=>setIo(e.target.value)}/>
+<div className="row"><button onClick={()=>{try{const s=JSON.parse(io);if(!s.nodes||!s.edges)throw 0;setNodes(s.nodes);setEdges(s.edges);setSel(null);setIo(null)}catch(e){alert('Ugyldig JSON')}}}>Importer</button><span className="mu">Kopier for backup, eller lim inn og importer.</span></div></div>}
+</div>}
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script></body></html>
